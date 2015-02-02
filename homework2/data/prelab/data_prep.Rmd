@@ -1,0 +1,37 @@
+---
+title: "data_prep"
+author: "Nicholas Nagle"
+date: "January 31, 2015"
+output: html_document
+---
+
+```{r set working directory}
+setwd('~/Dropbox/git_root/homework/homework2/data/prelab/')
+
+```
+
+
+```{r load packages}
+library(dplR)
+library(dplyr)
+```
+
+```{r load data}
+nm580.crn <- read.crn('nm580.crn')
+nm580 <- data_frame(year=as.numeric(row.names(nm580.crn)), 
+                    rwi=nm580.crn$TUBNMP, 
+                    samp.depth=nm580.crn$samp.depth)
+write.csv(nm580, file = '../rwi.csv', row.names=FALSE)
+
+raw.precip <- read.table('pcp.txt',sep='')
+names(raw.precip) <- c('ID', 'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec')
+raw.precip$state <- substr(raw.precip$ID, 1, 2)
+raw.precip$div <- substr(raw.precip$ID, 3, 4)
+raw.precip$element <- substr(raw.precip$ID, 5, 6)
+raw.precip$year <- substr(raw.precip$ID, 7, 10)
+raw.precip <- subset(raw.precip, state=='29' & div=='04') # subset on new mexico=29, division=04
+
+precip <- raw.precip[, c('year', 'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec')]
+write.csv(precip, file='../precip.csv', row.names=FALSE)
+```
+
