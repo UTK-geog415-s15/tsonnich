@@ -1,0 +1,49 @@
+---
+title: "lab2_homework"
+author: "Nicholas Nagle"
+date: "February 2, 2015"
+output: html_document
+---
+
+# Part 1. Analysis of El Malpais data
+
+What do the tree ring data tell us about monthly precipitation?
+
+Write up a short report (~ 2 paragraphs) answering the following questions:
+
+- Describe the monthly rainfall pattern.  
+- During what months is tree ring width correlated with rainfall?
+- How appropriate is (linear) correlation as a description of the relationship between tree ring width and monthly rainfall?
+- If you had to create a 12 month period that was correlated with tree ring width, what 12 months would those be?
+
+In answering these questions, I want to see:
+
+ - A bar chart or line graph showing average rainfall each month.
+ - Two scatterplots of tree ring width and precipitation, one with the current January, and one with the current August.  Use these to assess whether the relationship is approximately linear or not at all linear.
+ - Two (or one) plots showing the correlation at every month between tree ring width and precipitation, for both the current year and the previous year.  If you can get both current and previous (lagged) year on one plot, then great.
+ 
+ Make sure that your charts are properly labeled and are referred to in your answer.
+
+# Part 2: Getting the interpretation of correlation correct.
+
+
+1. In regard to the first part, which of the following is more correct and explain.
+  - A positive correlation between tree ring width and January precipitation might happen because January is often (but not always) wetter than the average month.
+  - A positive correlation between tree ring width and January precipitation might happen if dryer-than-average Januarys are associate with smaller-than-average tree ring widths.
+
+2. 
+  - Would the correlation between the age of a second-hand car and its price be positive or negative?  Why?  (Antiques are not included.)
+  - How would including antique cars change your response?
+
+3. True or False, and explain: if the correlation coefficient is 0.90, then 90% of the points are highly correlated.
+
+4. An economist is studying the relationship between household income and teenage pregnancy in the United States.  She has data for each of the 50 states, showing the average household income of families with teenagers, and the rates of pregnancy among teenage girls in that state.  The correlation is 0.4.  Does this give a fair estimate of th e strength of the association between household income and teenage pregnancy?  Explain.
+
+5. Three data sets are collected and the correlation coefficient is computed in each case.  The variables in the datasets are:
+  - grade point average in freshman year and sophomore year in college.
+  - grade point average in freshman year and senior year in college.
+  - length and weight of two-by-four boards of lumber.
+  
+  Possible values for correlation coefficients are: -0.5,   0.0,   0.3,  0.6,  0.95.  Match the correlations with the data sets; two will be left over.  Explain your answers.
+
+6. Studies find a negative correlation between hours spent watching television and scores on reading tests.  Does watching television make people less able to read?  Discuss briefly.

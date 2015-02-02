@@ -1,0 +1,169 @@
+---
+title: "Lab 2 -  Tutorial"
+author: "Nicholas Nagle"
+date: "February 2, 2015"
+output: html_document
+---
+In the data folder there are two files:
+
+ - rwi.csv: a tree ring chronology from El Malpais National Monument.  The chronology measures for each year how much the trees tended to grow larger or small than average.  A value of 1 means that the tree rings are an expected width.  Values greater than one mean wider than expected tree, and values less than one means narrower than expected trees. 
+ - precip.csv: a file with monthly precipitation totals for the area.
+
+First, let's do some preliminary work: setting the workspace, loading libraries and loading data.
+```{r set working directory}
+setwd('~/Dropbox/git_root/homework/homework2/')
+```
+
+
+
+```{r load libraries, message=FALSE}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(magrittr) # for the %$% notation I'll use later.
+```
+
+```{r load data}
+precip <- read.csv('data/precip.csv')
+rwi <- read.csv('data/rwi.csv')
+
+summary(rwi)
+summary(precip)
+```
+
+Note that the ring width data starts in Year `r min(rwi$year)` BCE and ends in `r max(rwi$year)`.  The rainfall data is monthly, beginning in `r min(precip$year)` and ending whenever I pulled the data from the NOAA website (so you can get more recent data now).
+
+# Initial Plotting
+As usual, let's see what the data look like:
+```{r plot rwi 1}
+ggplot(data=rwi) + geom_line(aes(x=year, y=rwi))
+```
+
+That's a lot of data.  You might want to subset to the last century or so (when we have precipiation data).  I'll show a few ways of doing this.  I commented out the first one.
+```{r plot rwi 2 and 3}
+# Using the subset function and temporary data:
+# temp.data <- subset(rwi, year>=1895)
+# ggplot(data=temp.data + geom_line(aes(x=year, y=rwi))
+#
+# It's possible to combine those two:
+# ggplot(data= subset(rwi, year>1895)) + geom_line(aes(x=year, y=rwi))
+
+
+# Using the really awesome dplyr function and its filter function
+filter(rwi, year >= 1895) %>% ggplot(data=.) + geom_line(aes(x=year, y=rwi))
+```
+
+The dplyr package allows you to manipulate your data and "chain" together commands in a really intuitive way.  In the above command, I used `filter` to create a new dataset with only years from 1895 and later, and then fed that data into ggplot using the `%>%`.  The '.' is where the new data set gets used.  A lot of people really like using the dplyr package.
+
+Now plot the August rainfall data:
+```{r plot rainfall}
+ggplot(data=precip) + geom_line(aes(x=year,y=Aug)) + labs(y="in", title="August Precipitation")
+```
+
+You could obviously do the same thing for other months.
+
+
+# Some plots requiring a little more advanced data manipulation
+I want to create two plots: one in which each precipitation is plotted for every single year/month observation, and another in which we plot the monthly average for each month.  In order to do these, we will first create what is called "tidy" data, data in which each row represent one row. (If you're good at MS Excel, you would know this a "pivot table" type of operation)
+
+
+```{r tidy data}
+temp.data <- gather(data=precip, key=month, value=precip, -year)
+head(temp.data) # They're not in order
+# Rearrange them
+tidy.precip <- arrange(temp.data, year, month)
+head(tidy.precip) # Now they're in order
+```
+The `gather` command gathered together every single column except year.  Before, we had the precipitation data spread across 12 columns, now all of the precipitation dataare gathered into one column, and we've added a new column that has the month name.  When it gathers, it creates a new column called `month` that has the variable name (or `key`), and a new column precip that has the data value.
+
+Now I want to plot the precipitation data for every observation.  In order to do this, we need to create a new column that is a "date".  Dates are specially formatted. They're not numbers and they're not text.  They're somthing different.  When things are stored as dates, then the software can order or filter them based on the date.
+
+```{r}
+# Create a new column that is a date text string (but still a string)
+# In dplyr, mutate is the function to create a new column.
+# and paste is the function to paste together text
+temp.data <- mutate(tidy.precip, date.str = paste(year, month, '01'))
+head(temp.data)
+# Convert that text string to a proper date
+temp.data <- mutate(temp.data, date=as.Date(date.str, '%Y %B %d'))
+head(temp.data)
+# Plot:
+ggplot(temp.data) + geom_line(aes(x=date, y=precip))
+# Oops, there is a missing value at the end we need to do something about.
+# missing data were stored as -999
+ggplot(subset(temp.data, year<2014)) + geom_line(aes(x=date, y=precip))
+```
+
+That was a mess.  We had to create some temporary data that we didn't need to keep.  We can try to do that in one stretch using pipes.  I'm not sure which is easier.  Either way, you should remember that it is important to think about how to manipulate data in order to get it into a form that you can then plot.
+
+
+
+```{r}
+# Plot the precipitation by month
+tidy.precip %>% 
+  mutate(date.str = paste(year, month, '01', sep='-')) %>%
+  mutate(date=as.Date(date.str, '%Y-%B-%d')) %>%
+  filter(date < '2014-01-01') %>%
+  ggplot() + geom_line(aes(x=date, y=precip))  
+```
+
+Plot the monthly averages.  I looked at the code [here](http://www.r-bloggers.com/do-your-data-janitor-work-like-a-boss-with-dplyr/) to get me started.  First we tell R to group the data by month, then we tell is to summarize each group, using the mean as a summary.
+
+```{r}
+# Two ways: one using temporary data.  one using pipes
+# First using temporary data
+temp.data <- group_by(tidy.precip, month)
+temp.data <- summarize(temp.data, precip=mean(precip, na.rm=TRUE))
+ggplot(temp.data, aes(month, precip)) + geom_bar(stat='identity') + labs(y='Precipitation (in)')
+
+# Second using %>% pipes
+tidy.precip %>% group_by(month) %>%
+  summarize(precip=mean(precip, na.rm=TRUE)) %>%
+  ggplot(data=., aes(month, precip)) + geom_bar(stat='identity') + labs(y='Precipitation (in)')
+```
+
+# Correlation and regression
+These data are useful because they can be used to establish an historical relationship between precipitation and tree ring width.  Tree Ring width doesn't respond to all rainfall at all times the same, however.  Rain that falls when the tree isn't growing isn't very helpful to the true.
+
+What this means for us is that if we see large tree rings, this may correspond to rainfall at a particular time of year, and not to rainfall at other times of the year.  It is entirely possible that rainfall at certain times will be completely missed by the tree ring record.
+
+You will assess this, but here is some code to get you started.  I will show some example two ways: one is by linking (joining) together the rwi data and the original precipiation data, and the other is by joining together the rainfall data and the "tidy" data.
+
+```{r eval=FALSE}
+# The original data
+rwi.precip <- left_join(precip, rwi, by='year') 
+
+cor(rwi.precip$rwi, rwi.precip$Jan)
+cor(rwi.precip$rwi, rwi.precip$Jan, use='complete.obs')
+cor(rwi.precip$rwi, rwi.precip$Jul, use='complete.obs')
+cor(rwi.precip$rwi, lag(rwi.precip$Dec), use = 'complete.obs')
+# The next line is the same but uses the %$%.  It might be easier to read or write
+rwi.precip %$% cor(rwi, lag(Dec), use='complete.obs') 
+
+```
+
+```{r}
+# the tidy data
+rwi.precip <- left_join(rwi, tidy.precip, by='year') %>% filter(year>=1895)
+rwi.precip %>% filter(month=='Jan') %$% cor(rwi, precip, use='complete.obs')
+rwi.precip %>% filter(month=='Dec') %$% cor(rwi, lag(precip),use='complete.obs')
+```
+
+Using the tidy format, it's fairly easy to get a correlation for each month all at once.  We just have to remember the "group-then-summarize"" trick:
+```{r}
+rwi.precip %>% group_by(month) %>% summarise(r=cor(rwi, precip))
+```
+
+# Summary of dplyr commands
+Here's a listing of the data manipulation functions in dplyr:
+
+ - `arrange`: arrange (sort) the data by row
+ - `filter`: filter (select) the data row
+ - `(inner/left/semi/anti)_join`: various ways to join together two datasets.
+ - `group_by`: group a dataset by one or more variables
+ - `lag/lead`: useful for time series
+ - `mutate`: calculate and add a new variable (column)
+ - `transmute`: calculate a new variable (column) while dropping other columns
+ - `rename`: rename a variable
+ - `select`: select some variables and dropping the others.
+ - `summarize`: calculate a summary for each group
