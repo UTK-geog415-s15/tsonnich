@@ -213,8 +213,6 @@ lines(x=arbuthnot$Year, y=arbuthnot$Females)
 Not very helpful.  We need color or dashes, or something:
 
 ```{r}
-plot(arbuthnot$Year, arbuthnot$Males, type='l') 
-lines(x=arbuthnot$Year, y=arbuthnot$Females, col='red')
 ```
 The help file for plot will show you some of the options that you can use.
 
@@ -279,7 +277,7 @@ ggplot noticed that we have two different lines and created a third aesthetic - 
 ggplot(data=arbuthnot) + 
   geom_line(aes(x=Year, y=Males, color='Male')) + 
   geom_line(aes(x=Year, y=Females, color='Females')) + 
-  ylab('Christenings') + labs('Sex')
+  ylab('Christenings') + labs(color='Sex')
 ```
 
 Let's make it a little more legible with thicker lines. 

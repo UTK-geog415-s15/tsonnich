@@ -2,7 +2,7 @@
 title: "test"
 author: "Nicholas Nagle"
 date: "January 26, 2015"
-output: pdf_document
+output: html_document
 ---
 # INSTRUCTIONS:
 Edit this file by replacing the instructions with text and code to anser the questions.
@@ -10,8 +10,9 @@ I should be able to knit this file and reproduce the html, pdf, or word document
 
 A block to load in the data:
 ```{r}
+library(ggplot2)
 rm(list=ls()) # Clean the workspace to be empty
-arbuthnot <- read.csv('/Users/nnagle/Dropbox/git_root/homework/homework1/data/arbuthnot.csv')
+arbuthnot <- read.csv('C:/Users/maria/Documents/GEO415/tsonnich/homework1/data/arbuthnot.csv')
 ```
 
 # Question 1
@@ -19,15 +20,25 @@ This is a question about how the axes affects how we interpret plots.
 
 Create two plots of Male-Female Christenings, one in which the y-axis scale is set by default, and one in which the y-axis extends all the way to zero.  Yes, I know that was in the tutorial.  I want to see it here.
 
- - Describe the visual appearance of the two plots.  Do they "feel" like they describe the same data?  
+ - Describe the visual appearance of the two plots.  Do they "feel" like they describe the same data? 
+Honestly, not particularly. They follow a same pattern, the 'Year' on the x-axis configuration is obviously the same, but the scale is so radically different it present the data in two radially different ways. 
+ 
  - Describe how you might be able to mislead readers by changing the scaling on graphs.  
+ The graph where the y-axis runs between 1 and 1.16 is a bit more eye-catching, so I could imagine somebody using this to show "dramatic rises and falls" in Male-Female birth ratio, misleading the conversation.
+ 
  - Which plot seems more appropriate here?  Why?
+It's hard to say, though the former does seem to answer the question and show more detail than the latter.
 
 # Question 2
 This question is designed to give you some practice with ggplot as well as describing plots in words.
 
 Use ggplot to create a scatterplot that has Female christenings on the x-axis and Male christenings on the y-axis.  Draw a 45 degree line (using geom_abline) to show the line where Male and Female christenings are equal.  Use this figure to describe the relationship and distribution of Male and Female christenings.
 
+```{r}
+ ggplot(data=arbuthnot) + 
+     geom_point(aes(x=Females, y=Males))+
+     geom_abline(h=45) + ylab('Question 2')
+```
 
 
 # Question 3
@@ -36,14 +47,19 @@ This is a question about population, sample, representativeness and generalizabi
 
 How do you think the christenings-based sample would compared to a births-based sample?  Similar?  Different?  Why?  Arbuthnot's data probably included most every christening in London during this period; they probably aren't any unreported christenings.  Is this fact important?  Why or why not?  Would a christenings based sample be appropriate now, in the 21st century?  (Hint, this last question is trickier than it might seem.  Think about what causes Male/Female Births, what causes people to christen their children, and any relations or not between these)
 
+In the case of 17th century England/UK, the church had a monolithic control on the country's civil life, so most babies born into society would be christened by a public record-keeping church within a few days of birth. Most couples rushed to have their child christened within a day or so of its birth because the chance it would not survive until age 1 were pretty high. Many babies died in birth and did not even get to the baptismal font. The infant mortality rate, of course, was infinitely higher at the time than it was in the twentieth century, when the "church" no longer existed as a monolithic institution. Hospitals kept more accurate time and dates of birth in the public domain, and a large percentage of babies (either belonging to other religions or just nonreligious) are not baptised.  
+
 # Question 4
 What does "sex ratio at birth" mean?  How does it depend on biology, cuture and technology.  Consider the three cases of 1) late 17th century England, 2) 21st century US, and China under the [one-child policy](http://en.wikipedia.org/wiki/One-child_policy).
 
+Historically, male babies have always been viewed as superior results to female babies, both in 17th century England and in twentieth century China. The case of population control in the latter became a much greater global controversy, as many believed it to be a human rights abuse. The reality of it was more nuanced than a "one child policy;" it essentially limited most mainline Han families to one child (they could have another if the first were a girl; this was one disincentive to families abandoning baby daughters or worse).
 
 # Question 5
-The purpose of this quetion is to give you a little practice using standard deviation.
+The purpose of this question is to give you a little practice using standard deviation.
 
 a. The average height of young women ages 18-24 is 64.5 in.  The distribution of heights is approximately normal (Gaussian) with a standardard deviation of $\sigma=2.5$.  Complete this sentence: Approximately 95% of women have a height greater than ______ in and less than ______ in.
+
+Approximately 95% of women have a height greater than 62 inches and less than 67 inches.
 
 # Question 6
 The purpose of this question is to help you understand the variance.
@@ -52,3 +68,4 @@ The formula for sample variance $\sigma^2$ of a dataset is:
 $$\frac{\sum_{i=1}^N (x_i - \bar{x})^2}{N-1}$$
 Describe in words what each part of this equation is, and using the concept of "distance" describe what the sample variance measures.
 
+The Variance is essentially the standard deviation, squared. It represents the farthest point away from the average that the data splays out to, within the sample. The N stands for the number of samples taken. The x-bar represents the average of all the results. 
