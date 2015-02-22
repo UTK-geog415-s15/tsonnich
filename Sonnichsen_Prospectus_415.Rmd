@@ -1,0 +1,9 @@
+---
+title: "Sonnichsen_Prospectus"
+author: "Tyler Sonnichsen"
+date: "Sunday, February 22, 2015"
+output: html_document
+---
+
+For my final graduate project for GEO 415, I will be conclusively dating a musical instrument (likely a violin). To that end, I will be applying a wide array of concepts discussed thus far or which will be covered in our course, including correlation, and will be utilizing coding language within the R program. I will be cross-referencing ring-width data of a violin in question with regional precipitation data. I will need a dataset from a sample wooden instrument, along with the precipitation data to accompany it. 
+  I have previously completed research in the area of dendromusicology for GEO 432 with Dr. Grissino-Mayer, from which I will incorporate an array of literature review on the theories and practices behind dating musical instruments. This project will further my interest in dendromusicology and also provide a culmination of the lessons from the Statistics course. 
