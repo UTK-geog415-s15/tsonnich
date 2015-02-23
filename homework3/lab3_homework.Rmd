@@ -1,0 +1,13 @@
+---
+title: "Lab 3 - Homework"
+output: html_document
+---
+
+1. For the first three diagnostic plots, describe wich assumptions they help to visually evaluate.
+2. These data are time series data.  In general, data are correlated in time, and this would be a problem for simple linear regression.  Plot the regression residuals vs time, and visually assess whether there is evidence of temporal (serial) correlation.
+3. In the data folder is the dataset GalapagosData.txt.  The species data represents the number of species recorded from each of the Galapagos islands. A fundamental 'law' of island biogeography is that species diversity tends to follow a power law relationship with island area, i.e. $$\mbox{species} = \alpha\times{\mbox{area}^\beta}$$  
+This is not linear, but it suggests that the following regression might make sense: 
+$$\log(\mbox{species}) = a + \beta \times log(\mbox{area})$$
+$a$ is not quite $\alpha$, rather $a=\log(\alpha)$.  
+Fit this regression, and present a brief write-up that a) describes the results in words, and b) summarizes your conclusions from diagnostic model checking.
+
