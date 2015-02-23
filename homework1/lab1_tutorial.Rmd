@@ -213,8 +213,6 @@ lines(x=arbuthnot$Year, y=arbuthnot$Females)
 Not very helpful.  We need color or dashes, or something:
 
 ```{r}
-plot(arbuthnot$Year, arbuthnot$Males, type='l') 
-lines(x=arbuthnot$Year, y=arbuthnot$Females, col='red')
 ```
 The help file for plot will show you some of the options that you can use.
 

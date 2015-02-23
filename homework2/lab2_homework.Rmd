@@ -1,4 +1,4 @@
----
+onth---
 title: "lab2_homework"
 author: "Nicholas Nagle"
 date: "February 2, 2015"
@@ -22,7 +22,31 @@ In answering these questions, I want to see:
  - Two scatterplots of tree ring width and precipitation, one with the current January, and one with the current August.  Use these to assess whether the relationship is approximately linear or not at all linear.
  - Two (or one) plots showing the correlation at every month between tree ring width and precipitation, for both the current year and the previous year.  If you can get both current and previous (lagged) year on one plot, then great.
  
+ Rainfall is, on average, the highest during the months of July, August, and September by a fairly substantial margin. The other nine months of the year (with the exception of October), the rainfall hovers well under 1 inch. October slightly breaks the one-inch mark, but not enough to fall in line with July, August, and September. 
+ According to the scatterplots for January and August 2014, the tree ring width index appears to be slightly more correlated with precipitation in January than in August. The August scatterplot appears to be more of a "cloud" formation with a high margin of error on the regression line. That being said, linear correlation doesn't appear to be too appropriate a reflection of monthly rainfall, as both scatterplots have a low correlation. If I were to demarcate the 12-month period most closely associated with ring width proper, I would go from July to June, beginning with the rainy season and ending as the trees end their own dry season.
+ 
  Make sure that your charts are properly labeled and are referred to in your answer.
+```{r}
+tidy.precip %>% group_by(month) %>%
++     summarize(precip=mean(precip, na.rm=TRUE)) %>%
++     ggplot(data=., aes(month, precip)) + geom_bar(stat='identity') + labs(y='Precipitation (in)') + labs(title="Monthly Rainfall Averages, 1895-Current")
+```
+
+```{r}
+rwi.precip %>% filter(month=='Jan') %>% ggplot() + geom_point(aes(x=precip, y=rwi)) + labs(title="January 2014")
+```
+
+```{r}
+rwi.precip %>% filter(month=='Aug') %>% ggplot() + geom_point(aes(x=precip, y=rwi)) + labs(title="August 2014")
+```
+
+```{r}
+rwi.precip %>% group_by(month) %>% summarise(r=cor(rwi, precip)) %>% ggplot() + geom_line(aes(x=month,y=r,group=1)) + labs(y="Correlation",title="Correlation Average, by Month, Current Year")
+```
+
+```{r}
+rwi.precip %>% group_by(month) %>% summarise(r=cor(rwi, precip)) %>% lag(1,precip) %>% ggplot() + geom_line(aes(x=month,y=r,group=1)) + labs(y="Correlation",title="Correlation Average, by Month, Previous Years")
+```
 
 # Part 2: Getting the interpretation of correlation correct.
 
@@ -30,14 +54,22 @@ In answering these questions, I want to see:
 1. In regard to the first part, which of the following is more correct and explain.
   - A positive correlation between tree ring width and January precipitation might happen because January is often (but not always) wetter than the average month.
   - A positive correlation between tree ring width and January precipitation might happen if dryer-than-average Januarys are associate with smaller-than-average tree ring widths.
+  
+Comparing the two scatterplots, there is clearly a greater correlation coefficient in January than in August. There are no instances of ring widths smaller than 0.75 in instances where it rained more than 1.5 inches. This does not clearly imply that January is the wetter month; in fact there are only 5 data points where it rained more than 2 inches in January. The second statement would be more appropriate.
 
 2. 
   - Would the correlation between the age of a second-hand car and its price be positive or negative?  Why?  (Antiques are not included.)
   - How would including antique cars change your response?
+  
+  This would have a negative correlation. As the car gets older, it's price typically goes down. A 2000 Toyota Camry would likely be much less expensive on the market than a 2013 model. Were antique cars included, this would problematize the correlation, as antique cars, especially rare and foreign models, are worth excessive amounts of money, even much more than new, factory-brand cars in individual cases. 
 
 3. True or False, and explain: if the correlation coefficient is 0.90, then 90% of the points are highly correlated.
 
+False. It does not mean that any certain amount of the points are "highly" correlated, but it means that, overall, the points have a high correlation to the average rate, or slope when visualized. 
+
 4. An economist is studying the relationship between household income and teenage pregnancy in the United States.  She has data for each of the 50 states, showing the average household income of families with teenagers, and the rates of pregnancy among teenage girls in that state.  The correlation is 0.4.  Does this give a fair estimate of th e strength of the association between household income and teenage pregnancy?  Explain.
+
+Simplifying this type of correlation with social issues is always problematic. The correlation coefficient is already fairly low, which does not speak too strongly for the correlation between household income and teenage pregnancy. This does not account for differences in, for example, sex education or contraception funding per state, both of which can have widespread impacts on teenage pregnancy rates.
 
 5. Three data sets are collected and the correlation coefficient is computed in each case.  The variables in the datasets are:
   - grade point average in freshman year and sophomore year in college.
@@ -45,5 +77,13 @@ In answering these questions, I want to see:
   - length and weight of two-by-four boards of lumber.
   
   Possible values for correlation coefficients are: -0.5,   0.0,   0.3,  0.6,  0.95.  Match the correlations with the data sets; two will be left over.  Explain your answers.
+  
+  - gpa between freshman year and sophomore year: 0.3
+  - gpa between freshman year and senior year: 0.6
+  - length and weight of 2X4 boards: 0.95
+
+The two left over will be -0.5 and 0.0, as the correlation coefficient must always be between 0 and 1. I imagine that the correlation coefficient of a 2X4 board would be extremely high, as the dimensions of the board stay almost identical throughout its width, no matter how long the 2X4 is. I placed the 0.3 correlation between Freshmen and Sophomore because the time-data are closer, and students often find themselves taking more interest in their classes as they advance at the University. The data may also have a major error, in how many people may go to community college then transfer into a four-year univerity with Sophomore or Junior standing. All one has to go on is a greater span of time between the two that may improve the correlation.
 
 6. Studies find a negative correlation between hours spent watching television and scores on reading tests.  Does watching television make people less able to read?  Discuss briefly.
+
+It's hard to say conclusively. Television may easily be a factor in one's decreased reading ability, but there are plenty of people who can read incredibly well despite hours of television. A study like this may have an agenda to discourage kids from watching too much TV, and their statistics speak for themselves. TV does not necessarily make people less able to read, but those in this data set who did watch it more seemed to have more trouble with the tests.

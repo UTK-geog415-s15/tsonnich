@@ -8,7 +8,7 @@ In the data folder there are two files:
 
  - rwi.csv: a tree ring chronology from El Malpais National Monument.  The chronology measures for each year how much the trees tended to grow larger or small than average.  A value of 1 means that the tree rings are an expected width.  Values greater than one mean wider than expected tree, and values less than one means narrower than expected trees. 
  - precip.csv: a file with monthly precipitation totals for the area.
-
+ 
 First, let's do some preliminary work: setting the workspace, loading libraries and loading data.
 ```{r set working directory}
 setwd('~/Dropbox/git_root/homework/homework2/')
