@@ -1,0 +1,128 @@
+---
+title: "Lab 3 - Tutorial"
+author: "Nicholas N. Nagle"
+date: "February 16, 2015"
+output: html_document
+---
+
+## Setup
+First, let's do some preliminary work: setting the workspace, loading libraries and loading data.
+```{r set working directory}
+setwd('~/Dropbox/git_root/homework/homework3/')
+```
+
+
+
+```{r load libraries, message=FALSE}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(magrittr) # for the %$% notation I'll use later.
+```
+
+
+
+```{r load data}
+precip <- read.csv('data/precip.csv')
+rwi <- read.csv('data/rwi.csv')
+
+summary(rwi)
+summary(precip)
+```
+
+## Data Tidying
+I want to create a data.frame that has columns of:
+
+year, month, precip.  Remember, the precip does not come in that format.  Instead it looks like this:
+```{r}
+head(precip)
+```
+I will gather the data into one column called precip...
+```{r}
+precip.df <- precip %>% gather(key=month, value=precip, -year) %>% arrange(year, month)
+head(precip.df)
+```
+
+We are going to create a new column that is the "hydologic year", or the precipitation year that the tree growth seems to correspond to.  In the previous lab we looked at correlations between tree ring width and monthly precipitation.  It seemed that tree ring width is most correlated with precipitation from the previous July to the current June.
+
+To create the "hydrologic year"", we will shift the year column forward by 6 months, so that the new year starts in July rather than next January.  We'll use the 'lead' function in the dplyr package.
+
+```{r}
+precip.df <- precip.df %>% mutate(water_year = lead(year, 6))
+head(precip.df, 20)
+```
+
+With this water_year column in place, we want to calculate the total precipitation each water_year.  This is a group and summarize task.
+```{r}
+annual_precip <- precip.df %>% group_by(water_year) %>% 
+  summarize(precip=sum(precip)) %>%
+  filter(water_year>1895)
+# Don't forget to filter out year=1895 because it wasn't complete.
+head(annual_precip)
+```
+
+
+Now we can merge that with the tree ring data...
+
+```{r}
+rwi.precip.df <- left_join(rwi, annual_precip, by=c('year'='water_year'))
+tail(rwi.precip.df)
+```
+
+## Exploratory analysis
+Plot a scatterplot.  You should always visualize the data first.
+```{r}
+ggplot(data=rwi.precip.df) + geom_point(aes(x=precip, y=rwi))
+```
+
+
+There is clearly a positive relationship between annual precipitation and ring width.  There is a possibility of nonlinear relationship; it appears that there are "diminishing returns" to precipitation.  A little precipitation is good for trees, but eventually an increase in rain does not lead to any extra increase in tree growth.
+
+## Linear regression
+Nonetheless, we'll fit a linear regression to the data.
+```{r}
+# Fit the model
+model <- lm(rwi~precip, data=rwi.precip.df)
+# Print out a summary
+summary(model)
+```
+
+We see that each increase in the ring width corresponds to a `r coef(model)[2]`  in increase in annual precipitation.  If we wanted to create 95% confidence intervals, we would have `r coef(model)[2]` plus/minus 2 times `r summary(model)$coefficients['precip', 'Std. Error']`, or [`r coef(model)[2] + c(-summary(model)$coefficients['precip', 'Std. Error'], summary(model)$coefficients['precip', 'Std. Error'])`].  This interval does not include zero.  Thus, a slope of zero (no relationship between precipitation and ring width) is not consistent with the data.  Admittedly, this isn't that interesting.  We could have speculated that a zero slope was not consistent with the data just by looking at the scatterplot.
+
+We also see the $R^2$ of `r summary(model)$r.squared`.
+
+## Regression Diagnostics
+
+Regression is easy enough.  We can always run a regression and get results.  But should we?  Should we run the regression?  Should we trust the results?  For this, we need to qualitatively evaluate the assumptions.  This is mixture of knowing your data, knowing your science, looking at a few different types of plots, and a little creativity.  What's worse, is that it's a lot of work, and it's never going to get published.  It is just assumed that the regression is OK, and if a reviewer questions you on the regression, you should have the supporting evidence that you will need already.
+
+Here is a quick way to do the regression diagnostic plots.
+```{r diagnostics}
+plot(model) # You can then step through each plot, Hit <Return> to see the next plot
+# Or you can see one plot at a time, e.g.
+plot(model, which=2)
+```
+
+First, a little about residuals.  First of all, regression residuals are not population model errors.  The residuals are #estimates# of the population errors.  Not all regression residuals are created equal.  Some data rows have residuals that are noisier than other rows.  In particular, the estimated residuals at the left and right are not as accurate as the estimated residuals near thecenter.  Even if the data have constant variance, the regression residuals do not.  The 'standardized residuals' correct for this.  There is also something called 'studentized residuals'.  There is usually very little difference in practice, but the studentized residuals may be more robust to outliers.
+
+Homework: For the first three plots, describe wich assumptions they help to visually evaluate.
+
+There appears to be a slight nonlinearity in the dataset.  We noted this in the initial scatterplot.  As you move from low to high fitted values, the residuals tend to be low, then high, then low again.  It's hard to tell how much of a problem this is, and how to fix it.  Possible technical solutions might be:
+
+ 1. log or square root transforming the predictand and/or predictor variables.  Transforming the dependent variable is not a problem for the regression, but it does complicate how we interpret the prediction.
+ 2. Adding precipitation squared as a predictor variable (this is a multivariate regression, we'll cover that in class soon)
+ 3. Nonlinear regression (I won't cover this in lab)
+
+
+For these particular data, my hunch is that precipitation has diminishing returns to tree growth.  I would probably try a log transformation of the data first.
+
+Here is a regression with just the subset with precip less than 20.  The nonlinearity looks like it has been removed, but there is still a problem with heteroskedasticity.
+```{r}
+# Fit the model
+model2 <- lm((rwi)~(precip), data=rwi.precip.df, subset=(precip<20))
+# Print out a summary
+summary(model2)
+plot(model2)
+```
+
+
+
