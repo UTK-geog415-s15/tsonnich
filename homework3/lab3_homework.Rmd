@@ -4,10 +4,47 @@ output: html_document
 ---
 
 1. For the first three diagnostic plots, describe wich assumptions they help to visually evaluate.
+
+The plots basically compare these two distributions against one another. We combined the data under the assumption that they would have a high correlation based on the levels of precipitation and tree-ring width. 
+The Quantile-Quantile plot attempts this by trying to fit a normal curve to the residual values. It appears that most of the points fall on the line here, so most are within 5%. The plot of Residuals vs. Fitted, however presents a less linear version of that. The regression line bows above zero for residual values around 1, but is predominantly negative. The scale-location plot matches fitted values with the Root of standardized residuals, which results in a regression line that runs between .05 and slowly works toward 1 as the fitted value approaches 2. 
+
 2. These data are time series data.  In general, data are correlated in time, and this would be a problem for simple linear regression.  Plot the regression residuals vs time, and visually assess whether there is evidence of temporal (serial) correlation.
+
+```{r}
+filter(rwi.precip.df, year>=1896) %>% ggplot(data=.) + geom_line(aes(x=year, y=resid)) + labs(y="Residual", title="Annual Regression Residuals, 1896-Today")
+```
+There does not appear to be a strong temporal correlation, as it rises gradually over the span of the first fifty years of the century, yet plummets over the following twenty, then spikes sometime in the 1990s. It appears there is some aberration in the data that is making it spike so voraciously toward the recent years measured.
+
 3. In the data folder is the dataset GalapagosData.txt.  The species data represents the number of species recorded from each of the Galapagos islands. A fundamental 'law' of island biogeography is that species diversity tends to follow a power law relationship with island area, i.e. $$\mbox{species} = \alpha\times{\mbox{area}^\beta}$$  
 This is not linear, but it suggests that the following regression might make sense: 
 $$\log(\mbox{species}) = a + \beta \times log(\mbox{area})$$
 $a$ is not quite $\alpha$, rather $a=\log(\alpha)$.  
 Fit this regression, and present a brief write-up that a) describes the results in words, and b) summarizes your conclusions from diagnostic model checking.
 
+I first visualized the data and the relationship between island area and Number of species observed. 
+```{r}
+ggplot(data=GalapagosData) + geom_point(aes(x=Area, y=Nspecies)) + labs(x="Number of Species", title="Number of Species per Island Land Area, Galapagos")
+```
+This was slightly problematic, as Ablemarle Island made the rest of the chart difficult to read (though not impossible). I ran another plot excluding Ablemarle, like so:
+```{r}
+filter(GalapagosData, Area<2000) %>% ggplot(data=.) + geom_point(aes(x=Area, y=Nspecies)) + labs(x="Number of Species", title="Number of Species per Island Land Area, Galapagos")
+```
+This is hardly perfect, but a bit easier to see the correlation (or lack of a strong one, at least). Time to build a model. Here is the summary (below)
+```{r}
+model4 <- lm(Nspecies~Area, data=GalapagosData)
+Residuals:
+   Min     1Q Median     3Q    Max 
+-88.55 -53.66 -43.56  21.21 216.04 
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)   
+(Intercept) 95.44410   24.38400   3.914  0.00138 **
+Area         0.04534    0.01677   2.703  0.01636 * 
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 93.72 on 15 degrees of freedom
+Multiple R-squared:  0.3275,  Adjusted R-squared:  0.2827 
+F-statistic: 7.306 on 1 and 15 DF,  p-value: 0.01636
+```
+When I ran the R plot of this model, the charts that resulted showed this aberration from Ablemarle Island (I did not want to exclude it from the data), but they also showed a general lack of linearity of regression. The Residuals vs. Fitted model shows a spike around a fitted value of 110, sinking rapidly before the value reaches 150. The Quantile-Quantile plot is hardly a straight line, either; only 4 data points even intersect with the straight line. The Scale-Location graph also reflects the spike from the R/F model. There is no clear correlation between island land mass and the number of species. There are clearly many variable elements that "area" does not consider, including predatory species, food and water available farther inland, and so forth. 
