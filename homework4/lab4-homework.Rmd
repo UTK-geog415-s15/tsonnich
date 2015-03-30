@@ -1,19 +1,46 @@
----
+libra---
 title: "Untitled"
 author: "Nicholas Nagle"
 date: "March 7, 2015"
-output: pdf_document
+output: word_document
 ---
 
 1. Two-sample T-test> ACT scores
 Consider the hypothesis that college-bound males and females have the same average ACT scores.
 ```{r}
+setwd("C:/Users/maria/Documents/GEO415/tsonnich/homework4")
 act <- read.table('ACT_scores.txt', header=TRUE)
 
 ```
  a. Write out the hypothesis that is tested by a two-sample t-test in this case.
- b. Using boxplots and summary statistics, report on the suitability of these data for a two-sample t-test to evaluate the hypothesis that seeding influences rainfall.
- c. Conduct a t-test to evaluate the hypothesis that seeding influences rainfall and report the result.
+ This is testing the hypothesis that, by comparing the gender averages against each other, we can ascertain that males and females both have the similar average SAT scores. 
+ 
+ b. Using boxplots and summary statistics, report on the suitability of these data for a two-sample t-test to evaluate the hypothesis that males and females have the same ACT score.
+```{r}
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+act2 <- gather(act,key=Sex,value=Score)
+
+ggplot(data=act2)+geom_boxplot(aes(x=Sex,y=Score))
+```
+I ran the line of code to summarize the average scores for both Males and Females, as well as the Standard deviation of those scores from the average. According to the visual created for the box plot, it seems that the Females have a much more even curve; the boxes are evenly distributed about the median score of approximately 20.5. The male median is slightly under 20, though the third quantile is noticeably bigger than the second. 
+ 
+ c. Conduct a t-test to evaluate the hypothesis that males and females have the same ACT scores and report the result.
+
+  Welch Two Sample t-test
+
+data:  act$Male and act$Female
+t = 0.1585, df = 24.475, p-value = 0.8754
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ -5.147383  6.004526
+sample estimates:
+mean of x mean of y 
+ 20.85714  20.42857 
+
+```
+According to the two-sample T-test, Males and Females have slightly off mean scores. Males have an average closer to 21 where Females have an average approximately .4 points lower.
 
 2.  Two-sample t-tests.  Cloud Seeding.
 
@@ -34,10 +61,58 @@ head(case0301)
 ```
 
  a. Using boxplots and summary statistics, report on the suitability of these data for a two-sample t-test to evaluate the hypothesis that seeding influences rainfall.
+ 
+ The initial boxplot reads like so:
+```{r}
+boxplot(Rainfall~Treatment, data=case0301)
+```
+Three of the Seeded data points rise well above the highest Rainfall statistic with any Unseeded runs. The data are very abnormal. This means the p-values are probably not accurate. I would need to log-transform the data to try to normalize it.
+
  b. Conduct a t-test to evaluate the hypothesis that seeding influences rainfall and report the result.
+
+Welch Two Sample t-test
+
+data:  Rainfall by Treatment
+t = 1.9982, df = 33.855, p-value = 0.05377
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+  -4.764295 559.556603
+sample estimates:
+  mean in group Seeded mean in group Unseeded 
+              441.9846               164.5885 
+              
+Based off this preliminary t-test, it would appear that seeding influences rainful around the sample group. The t-value is around 2 and the p-value is around .05, but the degrees of freedom seem very high. 
+ 
+ 
  c. Repeat a. and b. using a log-transform of the rainfall measurement.  Which analysis do you prefer and why?
+```{r}
+mydata <- case0301
+hist(log(mydata$Rainfall))
+```
+```{r}
+t.test(data=mydata, log(Rainfall) ~ Treatment)
+```
+Welch Two Sample t-test
+
+data:  log(Rainfall) by Treatment
+t = 2.5444, df = 49.966, p-value = 0.01408
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ 0.2408498 2.0467125
+sample estimates:
+  mean in group Seeded mean in group Unseeded 
+              5.134187               3.990406
+              
+Running a log-transform does sharpen the t-value and p-value immensely, and heightens the degrees of freedom as well. It also brings the sample estimates closer to one another, which is probably more the case, as it accounts better for errors. I would prefer this log-transformed take.
+
+ 
  d. Why is it important that the pilots were unaware of whether they were seeding or not?
+ 
+Because they would have altered their pattern or speed if they had known if they were seeding clouds, increasing the unaccountable errors in the statistical measures.
+ 
  e. Unfortunately, we do not have the date of the weather event.  Why would it be helpful to have  this information?
+
+Because perhaps the biggest error factor here is whether a weather event occurred naturally, or if it happened because of the cloud-seeding. That could have rendered the whole experiment either obsolete or potentially easier to calculate.
 
 2. ANOVA
 
@@ -53,9 +128,26 @@ data <- data.frame(temp=temp, season=season)
 
 For the air temperature data, conduct an ANOVA and use the F-statistic to test the hypothesis that air temperature varies by season.
 
+```{r}
+aov(temp~season, data=data)
+```
+Call:
+   aov(formula = temp ~ season, data = data)
+
+Terms:
+                  season Residuals
+Sum of Squares  2952.133   111.600
+Deg. of Freedom        2        12
+
+Residual standard error: 3.04959
+Estimated effects may be unbalanced
+
+The residual standard error of 3 suggests that the data does show some linearity, so I could say with some confidence that yes, the temperature does vary by season.
+
+
 3.  Spock Conspiracy Trial.
 
-This is another classic dataset. Dr. Benjamin Spock was a pediatrician who wrote a very popular book in 1948.  In 1968, Dr Spock was accused of conspiring to violate the Selective Services Act by helping young men to medically avoid the military draft during the Vietnam War.  His defence challeneged the case on the grounds that the jury did not contain a single woman, and therefore could not be random.
+This is another classic dataset. Dr. Benjamin Spock was a pediatrician who wrote a very popular book in 1948.  In 1968, Dr Spock was accused of conspiring to violate the Selective Services Act by helping young men to medically avoid the military draft during the Vietnam War.  His defence challenged the case on the grounds that the jury did not contain a single woman, and therefore could not be random.
 
 These data used here contain jury compositions for Spock's judge and 6 other judges in the same court.  For each jury, we have the fraction of the jury that was female.
 
@@ -64,9 +156,72 @@ data(case0502)
 ```
 
  a. Qualitatively describe these data using boxplots and summary statistics.
+ 
+ Percent          Judge  
+ Min.   : 6.40   A      :5  
+ 1st Qu.:19.95   B      :6  
+ Median :27.50   C      :9  
+ Mean   :26.58   D      :2  
+ 3rd Qu.:32.38   E      :6  
+ Max.   :48.90   F      :9  
+                 Spock's:9  
+                 
+This was the summary, above. The mean suggests that, overall, about 26.6 percent of all jurors in the court were female. The boxplots, however, demonstrate that something was fishy:
+```{r}
+spock <- case0502
+boxplot(Percent~Judge, data=spock)
+
+```
+This makes visible how relatively few jurors Spock had in his case were female, compared to judges A through F. Treachery afoot?
+ 
  b. Using an ANOVA, test the hypothesis that all of the judges have the same jury compositions on average and report your results.
+ 
+ Call:
+   aov(formula = Percent ~ Judge, data = spock)
+
+Terms:
+                   Judge Residuals
+Sum of Squares  1927.081  1864.445
+Deg. of Freedom        6        39
+
+Residual standard error: 6.914209
+Estimated effects may be unbalanced
+
+It does not appear that the judges have any similar jury compositions, particularly given the residual standard error of nearly 7. 
+ 
+ 
  c. Grouping together Judges A-F, perform a two-sample t-test to test the hypothesis that Spock's judge consistently chooses juries with lower than expected women.
+ 
+t.test(data=spock3, Percent ~ Judge)
+
+  Welch Two Sample t-test
+
+data:  Percent by Judge
+t = 7.1597, df = 17.608, p-value = 1.303e-06
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ 10.49935 19.23999
+sample estimates:
+mean in group Others mean in group Spocks 
+            29.49189             14.62222 
+            
+I grouped all other Judges together into dataset 'Spock3' and I found these t-test results. The numbers were strikingly similar, and reflect that yes, Spock's juries had significantly fewer women, though the T-value was very high at 7.15, and the p-value was negligible.
+ 
  d. Use another ANOVA to evaluate whether or not it was suitable to group together the other 6 judges.
+ 
+ Call:
+   aov(formula = Percent ~ Judge, data = spock3)
+
+Terms:
+                   Judge Residuals
+Sum of Squares  1600.623  2190.903
+Deg. of Freedom        1        44
+
+Residual standard error: 7.056433
+Estimated effects may be unbalanced
+
+This makes it more ambiguous, as it greatly increases the sum of squares. However, it is still fair to guess that Spock's juries were significantly less female than the other judges'.
+ 
  e. How should your interpretation of the results in part (c) change if you rejected the hypothesis the other six judges were not all statistically the same?
  
- 
+The t-value already suggests that we must reject the null hypothesis, so we would need to perhaps run a log-transfer of the data to see if we could standardize it to the point where we could run all six judges against one another with fewer variables. 
