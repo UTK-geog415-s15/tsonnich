@@ -1,8 +1,8 @@
 ---
 title: "Homework 5"
-author: "Nicholas Nagle"
+author: "Tyler Sonnichsen"
 date: "March 30, 2015"
-output: pdf_document
+output: word_document
 ---
 
 For this assigment you will use a dataset of housing prices in Boston.
@@ -53,13 +53,84 @@ ggplot(boston.c) + geom_point(aes(x=X, y=Y, color=log(DIS)))
 # Homework Assignment:
 1. Using the scatterplot matrix (`ggpairs`), 
  a. Describe the correlates of house price.
+ 
+ According to the scatterplot matrix, house prices have negative correlations with age, lower status populations, pupil-teacher ratios, and nitric oxides concentration. House prices have positive correlations with average number of rooms per house, log-distance, and the numeric vector of black population, 
+ 
  b. Describe the correlates of NOX.
+
+Nitric oxide counts have a (quite strong) positive correlation with age, and otherwise positive correlations with lower-status populations and a slightly positive correlation with pupil-teacher ratio. Nitric oxide counts have negative correlations with rooms per house, distances from employment centers, and the numeric vector of black population.
+ 
 2. Imagine the multivariate regression of log(CMEDV) on NOX, AGE, log(DIS), RM, CRIM, PTRATIO, B, LSTAT, and CHAS.  DO NOT RUN THE REGRESSION YET.  For each of these variables, predict whether you think the regression coefficient will be positive or negative, and why.  Remember, the multivariate regression relationship is the relationship AFTER you hold the other values fixed.  So, for instance to think about the relationship between Distance and value, you should think like: "Imagine two houses that have the same age, same number of rooms, same racial and ethnic neighborhood, same tax rate, etc.  Now move one of those houses farther from workplaces.  Should that change increase or decrease housing value."  Answer: Economic theory suggest that everything else equal, being far from work is a bad thing.  Note, the Charles River is a particulurly industrial part of town.
+
+If we were to hold the other values all fixed, then I would imagine the regression coefficient for NOX would be negative, the coefficient for AGE would be negative, log(DIS) would be negative, the RM would be positive, the CRIM would be negative, PTRATIO would be negative, B would be negative, LSTAT would be negative, and CHAS would probably, based upon the industrial element, also be negative. So, the only factor that would drive up house prices (all things considered) would be RM (number of rooms per dwelling). All other factors, based upon generalities, negatively affect housing prices, especially in a city with a history of racial intolerance like Boston.
+
 3. One of the relationships is a negative relationship between Distance from Work (primarily Boston) and House Value.  Fit a bivariate regression between log CMEDV and log DIS
- a. Report the slope of this regression and interpret it's value.
- b. Report approximate 95% confidence intervals for the slope.
+ 
+Call:
+lm(formula = MEDV ~ log(CMEDV) + log(DIS), data = boston.c)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-9.1250 -1.6884 -0.7287  0.5194 12.9573 
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept) -43.3338     0.9008 -48.105  < 2e-16 ***
+log(CMEDV)   22.4540     0.3197  70.245  < 2e-16 ***
+log(DIS)     -1.9120     0.2419  -7.905 1.71e-14 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 2.68 on 503 degrees of freedom
+Multiple R-squared:  0.9154,  Adjusted R-squared:  0.9151 
+F-statistic:  2721 on 2 and 503 DF,  p-value: < 2.2e-16
+
+a. Report the slope of this regression and interpret it's value.
+
+This slope is estimated for log Distance at -1.9, meaning that for every unit that the distance changes, it affects the Median Value approximately 2 units. 
+
+b. Report approximate 95% confidence intervals for the slope.
+
+The Standard error of the log(DIS) is 0.24, so a 95% confidence interval would have the approximate amount of 0.48.
+ 
+
 4. Fit the linear regression from question 2.
+
+Call:
+lm(formula = log(CMEDV) ~ NOX + AGE + log(DIS) + RM + CRIM + 
+    PTRATIO + B + LSTAT + CHAS, data = boston.c)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.72962 -0.09850 -0.00867  0.09295  0.86452 
+
+Coefficients:
+              Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  4.0719345  0.1997748  20.383  < 2e-16 ***
+NOX         -0.9250979  0.1413230  -6.546 1.48e-10 ***
+AGE         -0.0004881  0.0005235  -0.932 0.351613    
+log(DIS)    -0.2499594  0.0322420  -7.753 5.14e-14 ***
+RM           0.1113468  0.0159920   6.963 1.06e-11 ***
+CRIM        -0.0094586  0.0011974  -7.899 1.82e-14 ***
+PTRATIO     -0.0338335  0.0043792  -7.726 6.20e-14 ***
+B            0.0003547  0.0001053   3.368 0.000817 ***
+LSTAT       -0.0292276  0.0020030 -14.592  < 2e-16 ***
+CHAS1        0.1202545  0.0339289   3.544 0.000431 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.1887 on 496 degrees of freedom
+Multiple R-squared:  0.7902,  Adjusted R-squared:  0.7864 
+F-statistic: 207.5 on 9 and 496 DF,  p-value: < 2.2e-16
+
  a. Report the coefficient of log Distance.  Interpret it's value and report it's 95% confidence interval.  
+ 
+The coefficient of log Distance is approximately -0.25. This means that for every unit of distance farther away, it results in .25 less value on the property. It's standard error is .032, so a 95% confidence interval would be within .064 of that amount per unit.
+ 
  b. Explain why the coefficient on log Distance changed so dramatically from in question 3.
+ 
+It changed dramatically because in question 3, it only considered the log(DIS) against one other factor. It didn't factor in any of the other myriad factors that can affect housing prices, particularly in Boston. When weighed against everything from crime levels, building age, location on the Charles, etc. the impact of the distance can highly fluctuate.
+
  c. Come to a conclusion regarding the relationship of air quality (measured by NOX).  Is there evidence that NOX has a relationship on house value?  Be sure to describe both the value of that relationship and the possible range of values.
  
+The coefficient of NOX is -0.92, meaning that air quality has a fairly steady negative correlation on housing value. However, NOX is not independent from other influencing factors, like the heavily industrialized Charles River banks, poverty, and others, so it cannot drive housing prices alone. But a negative correlation of nearly 1/1 says it is, based around these pretenses, a good indicator of rising or sinking housing values.
