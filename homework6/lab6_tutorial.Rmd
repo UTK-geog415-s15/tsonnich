@@ -1,0 +1,241 @@
+---
+title: "Lab 6 Tutorial"
+author: "Nicholas Nagle"
+date: "April 6, 2015"
+output: pdf_document
+---
+
+# Homework
+Your homework assignment is to analyze the prestige data, using "income" as the dependent variable.  That is, develop a regression model that helps to explain the income in an occupation, using any of the other data in the the Prestige data set as a potential predictor.  Describe your methodology from beginning to end.  I have done this using Prestige as the dependent variable, and you should follow along with that before continuing.
+
+
+# Tutorial
+
+
+
+```{r load libraries, message=FALSE, warning=FALSE}
+library(dplyr)
+library(ggplot2)
+library(GGally) # for ggpairs
+library(car) # for the diagnostic plots and the Prestige data
+```
+
+First, load the data
+```{r load prestige}
+data(Prestige)
+```
+
+Always look at the data data to see what the variables look like:
+```{r data summary}
+head(Prestige)
+summary(Prestige)
+```
+
+We have data organized by occupation, with the prestige, average income, average eduation, percent women in the occupation, and how it is classified according to "white collar", "blue collar" and "professional."
+
+The first thing I should do is to theorize what the coefficients should be.  I expect that income and education should be positively associated with prestige, because I think that our society values income, and I hope that it values education.  I'm not certain what the relationship with percent women is.  To be honest, I am concerned that it might be negative, i.e. that society devalues "women's work".  There's also the type variable, of white collar, blue collar and professional.  I expect these to be associated with prestige (blue collar, then white collar, then professional the highest).  But I don't know *why* these are important.  Perhaps it is related to income and education, in which case the type variable is not significant as it's own effect.  Or perhaps there are other differences between the types that are separate from education and income.  I don't have any clear expectations for the final relationship between occupational type and prestige.
+
+If this were an academic paper, I would formally state my hypothesis at this point.
+Example: I hypothesize that there is a significant relationship between gender and prestige, even after controlling for education and income.  Moreover, I expect this relationship to be negative.  
+
+Now, we can visually plot the data.
+We've used  ggpairs in the past and I like that one.
+Note that I have adjusted the figure height and width in the .Rmd file from last week.
+The plot is now much more legible (though the font may be small now)
+
+```{r ggpairs, message=FALSE, fig.width=12, fig.height=12}
+# Note the filtering out of missing values before plotting and 
+#  1) selecting to drop census, and put the dependent var on the bottom row
+ggpairs(Prestige %>% filter(!is.na(type)) %>% select(education, income, women, type, prestige))
+```
+Looking at this, I would note the following:
+
+1. Prestige, (the dependent variable) has a pretty normalish distribution.
+2. There is a relationship between Prestige and education.  I might be able to model it with a linear relation.
+3. There is a relationship between Prestige and income.  But it is nonlinear.  It might be downward bending, or perhaps there is a kink at 10000.  A log relationship of income might make it more linear.
+4. There does not appear to be a relationship between Prestige and % women.
+5. There is a strong relationship between prestige and type.  In particular, professional jobs carry prestige.
+6. There are many strong relationships between the covariates.  Apart from women, everything has a correlation above 0.5.
+
+That's a lot from just one graph.  The correlations between X variables is concerning.  In particular, I am thinking about that fact that just because a bivariate relationship appears linear or nonlinear, this may change in a multivariate regression.  Also, just because women does not appear to be related to prestige, it is (negatively) related to income.  Thus, women may be a confounding variable on the true effect of income.  I better include it in the regression "just in case"
+
+Run a regression with everything in it.
+```{r}
+reg0 <- lm(prestige ~ type + education + income + women, data=Prestige)
+summary(reg0)
+```
+Education and income are significant.  But I remember that the relationship with education was potentially nonlinear.
+I can check that with a component plus residual plot:
+
+```{r}
+crPlots(reg0)
+```
+Oh, yes, there is definitely nonlinearity with income in the multivariate regression.  Let's try to fix that.  I can try to log income, to log prestige, or both.  If I log prestige, that will change ALL of the relations, so let's avoide that if I can (unless it makes sense on scientific grounds to do so).
+
+```{r}
+reg1 <- lm(prestige ~ type + education + log(income) + women, data=Prestige)
+summary(reg1)
+crPlots(reg1)
+```
+The plots look much better.  But does it make sense?  The original regression said that a 1 dollar change in income causes a $beta$ change in prestige.  The log transformation says a 1% increase in income causes a $beta$ change in prestige.  1% income change at $5000 is $250.  A 1% change at $20000 is $1000.  Does it make sense that you can "buy" relatively cheaply at first, but it gets harder and harder to buy?  Yes, I think that makes sense.  So I would stick with the log income regression.
+
+Now, back to the regression.  Women is now significant.  Barely, but significant all the same.  
+% Women is a trick variable, though. There are many jobs with very few women, and then some jobs with 20-100% women.  It appears that these jobs at the high end may have more prestige that we still aren't accounting for.  This would suggest that there are increasing returns to prestige at the high end of % women, which is the opposite of what we saw with income.
+
+We could fit a parabola to % women, to get that increasing return.  Should that parabola have a bottom at women =0, or somewhere else?
+
+```{r}
+# A fit with the parabola centered at women = 0
+reg2 <- lm(prestige~type+education+log(income)+I(women^2), data=Prestige)
+summary(reg2)
+# A fit with the parabola centered somewhere else...
+reg3 <- lm(prestige~type+education+log(income)+ women + I(women^2), data=Prestige)
+summary(reg3)
+```
+
+It can be helpful to see what these predictions look like.  
+To do that, we can use the `predict` function.
+But remember, in a regression, the coefficents are if everything else is held fixed.
+So we can create prediction data where we hold education and income fixed.  We could
+hold type fixed, but it is easy to hold fixed in a plot, so I won't.
+```{r}
+# First, copy the data, but then fix eduation and income to set values
+pred.data <- Prestige %>% mutate(education=12, income=5000)
+# Now, do the predictions
+pred.data$prestige.predict2 <- predict(reg2, newdata = pred.data)
+pred.data$prestige.predict3 <- predict(reg3, newdata = pred.data)
+# And plot
+ggplot(pred.data) + geom_point(aes(x=women, y=prestige.predict2, color=type))+
+  labs(title = "Prediction with prestige = a + b women^2")
+ggplot(pred.data) + geom_point(aes(x=women, y=prestige.predict3, color=type)) +
+  labs(title = "Prediction with prestige = a + b women + c women^2")
+
+```
+
+I am curious what are these professions with many women...
+```{r}
+Prestige %>% arrange(desc(women))
+```
+Ahhh, where are the row.names?  
+It turns out that the author of dplyr doesn't like row.names for reasons I don't agree with at all and so he just ignores them.
+We need to add a column with the row.names.
+
+```{r}
+Prestige %>% mutate(occ=row.names(.))  %>% arrange(desc(women))
+```
+We see that there are jobs such as secretaries, nurses, teachers, therapists and medical technicians with a relatively high degree of prestige.  
+The regression results tell us that these jobs have more prestige than should be expected based on income, education and type.
+
+The stories that can be told from this data are facinating.  
+
+ - Do these jobs have high prestige becuase they have many women (is it causal)?
+ - Perhaps these jobs are underpaid because they have many women (is it causal)?
+ - Are women self selecting into these jobs?
+ - Perhaps women value prestige higher than income, when compared to men?
+ - Or perhaps women don't necessarily value prestige higher, but are tacitly told, "you should expect lower income because there is a lot of prestige in these occupations (part of your "reward" is non-monetary)?
+
+These data have suggestes interesting questions, but can not answer them all.
+Answering these questions would require different data, and perhaps different methods.
+
+Before reporting these results, we need to do more diagnostic checking.  
+We should look at the residual plots...
+
+Here are the standard residual plots:
+```{r}
+plot(reg2)
+```
+
+There is still some nonlinearity in the residuals somewhere.  We may not be done yet...
+
+There is a helpful function in the car package called `residualPlots`.  Instead of just residual vs fitted values, it also gives you residual vs individual values.  This is kinda like a residual plus component plot, but without the component.  The residualPlots function also does a test for a curve to the residuals.  There should be no curve.
+
+```{r residualPlots}
+residualPlots(reg2)
+```
+
+There is a curve, both with regard to the fitted values (we already knew that) and with regard to log income.  Other than than.  This suggests logincome as the possible source of the nonlinearity.  I have two initial thoughts: (1) is that the log transformation of education may not have been sufficient or (2) log income may be interacting with other variables (even though we see no curve with regard to the other variables).  We know that there are correlations between all of the X variables, and it's possible that they aren't complely accounted for by the linear regression so far.  
+
+At this point, we've done a few variable transformations.  We never went back to the pair plot to see what this looked like.
+```{r, fig.height=12, fig.width=12}
+ggpairs( Prestige %>% filter(!is.na(type)) %>% mutate(loginc = log(income), wom_sq = women^2) %>% select(education, loginc, wom_sq, type, prestige))
+```
+
+I immediately noticed something... there still appears to be zero relationship between women and prestige!
+We can check that...
+
+```{r}
+summary(lm(prestige~I(women^2), data=Prestige))
+```
+
+What is happening?  It turns out that the weak, but probably significant effect of women is probably being masked by the larger effects of education and logincome.  Bivariate scatter plots do not always show the effect in a multivariate setting.
+
+Anyway, there are strong relations between loginc and women^2 and between loginc and education.
+
+```{r}
+reg4 <- lm(prestige~type + log(income)*education + log(income)*I(women^2), data=Prestige)
+summary(reg4)
+```
+
+Whoa.  There are significant relations between log income and education.  But women has completely disappeared.  It would be premature to drop women entirely.  Consider this, there are two coefficients for women now.  The t-test measures whether these are each zero, individually.  But should they both be zero?  That's a question for the F-test, which we can do with an anova.  First, we run a regression like reg4, but without women entirely.  Then we do an anova
+
+```{r}
+reg5 <- lm(prestige~type + log(income)*education, data=Prestige)
+anova(reg4, reg5)
+```
+It's significant, so women should be in the model.  Having women there does increase our prediction ability.
+
+An alternative to reg 5 is a model without the interaction between loginc and women...
+
+
+```{r}
+reg6 <- lm(prestige~type + log(income)*education + I(women^2), data=Prestige)
+summary(reg6)
+anova(reg6, reg4) # Compare with the big model
+anova(reg6, reg2) # Compare with the smaller model
+```
+
+We see that there is no difference between this model and the big one, but there is a difference between this one and the smaller, linear model without interactions.
+
+
+```{r}
+residualPlots(reg6)
+```
+That's really quite beautiful...
+
+```{r}
+avPlots(reg6)
+```
+
+```{r}
+plot(reg6)
+```
+
+
+All of these plots aren't bad.  I think we've got a good model.
+
+One final thing... it would be good to visualize what the effect of the regression is.
+We'll do that with the predict function again...
+
+```{r}
+# First, copy the data, but then fix eduation and income to set values
+pred.data <- Prestige
+# Now, group the income data.  There is a little bit of magic here
+# %/% will divide by eliminate the remainder.
+#  So look at how I can group these face education numbers...
+seq(0,20)
+(seq(0,20) %/% 4) * 4
+# Now, do the predictions
+pred.data$education <- (pred.data$education %/% 3)*3
+pred.data$women <- 10 # Fix women
+pred.data$type <- 'wc' # Fix type
+pred.data$prestige.predict6 <- predict(reg6, newdata = pred.data)
+ggplot(pred.data) + geom_point(aes(x=log(income), y=prestige.predict6, color=factor(education)))
+```
+
+You can clearly see the diminishing relationship between income and education.
+
+At this point, I am extremely happy with the regression. I have significant relations, and they all make sense.  
+
+In addition to describing the regression coefficients, I would probably write something like this: "A regression including interactions between log(income) and percent women was also performed.  That regression did not improve the model fit as measured by an Analysis of Variance (F(1,91)=.3112, p=.5783) and is not reported here."
+
+
