@@ -1,0 +1,192 @@
+---
+title: "Lab 7 Tutorial"
+author: "Nicholas Nagle"
+date: "April 13, 2015"
+output: pdf_document
+---
+
+# Homework
+Here is a tutorial looking at a dataset using logistic regression.  
+
+The data
+
+
+# Tutorial
+
+```{r load data}
+solea <- read.table('Solea.txt', header=TRUE)
+head(solea) # See what we've got.
+# Turn the categorical variables into categorical variables
+solea$month <- as.factor(solea$month)
+solea$Area <- as.factor(solea$Area)
+```
+
+These data represent presence/absence of sole (Solea solea) in the Tagus Estuary of Portugal.
+The sole is an economically valuable species.  Spawning occurs on the contentental shelf, but the young will migrate to coastal areas to develop for a few years.  The city of Lisbon lies along the Tagus Estuary, and the area is heavily urbanized.
+
+We've got variables on:
+
+1. Season (1=Spring, 2=Summer)
+2. Month
+3. Station ID
+4. Depth (m)
+5. Temperature (C)
+6. Salinity (ppt)
+7. water Transparency (cm)
+8. % gravel in sediment
+9. % large sand
+10. % medium and fine sand
+11. % %mud
+12. Area - the data were sampled in four different areas. 
+
+```{r fig.width=16, fig.height=16, message=FALSE}
+library(dplyr)
+library(ggplot2)
+library(GGally)
+
+solea %>% select(depth, temperature, salinity, transparency, gravel, large_sand, med_fine_sand, mud, Solea_solea) %>% ggpairs()
+```
+
+Let's try the "kitchen sink" regression first - the regression with everything in it.
+There is no reason to include the sample id variable, nor season, (since we also have month)
+```{r}
+mod <- glm(Solea_solea ~ . - Sample - season, data=solea,
+           family=binomial(link='logit'))
+summary(mod)
+
+```
+
+The enormous values and standard errors on gravel, sand, and mud are curious.
+Let's look at component plus residual plots:
+
+```{r}
+library(car)
+crPlots(mod)
+```
+
+Hmmm.  The data fitting on the line for gravel, sand and mud are unsual .  
+I suspect that multicollinearity is a problem here.
+These are all fractions.  Do they add up to 100%? I.e. are they perfectly collinear? 
+If so, then R should have detected and corrected it.  But let's check.
+
+```{r}
+solea %>% select(gravel, large_sand, med_fine_sand, mud) %>% rowSums()
+```
+Ahh.  That explains a lot.
+These are fractions, and they add up to 100, apart from what must be roundoff error. Since they don't add up exactly to 100, R couldn't tell that they were perfectly collinear.  We must remove one as the "baseline" category.  I'll remove mud.
+
+```{r}
+mod <- glm(Solea_solea ~ . - Sample - season - mud, data=solea,
+           family=binomial(link='logit'))
+summary(mod)
+```
+
+We see that gravel is strongly significant.  What about the sands?  Can we drop those?
+An ecologist might argue that gravel/mud is the most significant difference, and argue to drop these.
+We should listen to the subject matter expert.  But in the absence of that, is there statistical evidence to drop these?
+```{r}
+mod2 <- glm(Solea_solea ~ . - Sample - season - mud - large_sand - med_fine_sand, data=solea,
+           family=binomial(link='logit'))
+summary(mod2)
+anova(mod2, mod, test="Chisq")
+# Compare the coefficients
+coef(mod2)
+coef(mod)
+```
+
+There are three statistical indications that we can drop the sands:
+
+1. The AIC drops when they are omitted, 
+2. This is supported by the ANOVA test that doesn't detect a difference between the models, and
+3. the coefficients don't change by very much when they are dropped.
+
+What about area, can we drop that?
+```{r}
+mod3 <- glm(Solea_solea ~ . - Sample - season - mud - large_sand - med_fine_sand - Area, data=solea,
+           family=binomial(link='logit'))
+summary(mod3)
+anova(mod3, mod2, test="Chisq")
+# compare the coefficients:
+coef(mod2)
+coef(mod3)
+```
+
+This is a tough call.  Based on the p-value and the AIC, we should drop Area.
+But, the coefficients do change by a bit when Area is dropped.  
+In particular, temperature becomes significant.
+NOTE: Other analysis points to the "40" location as being very different than the others, for no apparent reason.
+If this point is removed, then that leads to the different conclusion that we should keep Area in the model.  I'll ignore this point for now and proceed by dropping Area based the AIC and p-statistics.
+I am not completely happy with this situation, however.
+But in practice, you should investigate this observation further.
+What I suspect is happening is that a lot of the difference between Areas is due to systematic differences between temperature, salinity, etc.
+But neither can temperature and salinity completely explain the remaining differences between area.
+When we remove Area, we see that temperature and salinity are significant, but also, by removing Area, we can no longer capture that there may be remaining differences between the areas.
+
+
+I'm going to cautiously proceed with the model without Area.  Next, are transparency and depth important?  I'll do this in one step, rather than two, for no reason other than that this is getting to be a long tutorial.
+
+```{r}
+anova(mod3, update(mod3, . ~ . -transparency - depth), test="Chisq")
+mod4 <- update(mod3, . ~ . -transparency - depth)
+```
+
+The AIC and ANOVA says to drop these, but I'm not so sure.
+Removing transparency and depth slightly affect the salinity and gravel measure, but the change is within the level of uncertainty.  It turns out that dropping transparency affects the measure of gravel, and dropping depth affects the measure of salinity.
+The following code shows that:
+
+```{r}
+coef(mod3)
+coef(update(mod3, . ~ . - transparency))
+coef(update(mod3, . ~ . - depth))
+```
+
+At this point, you have four slightly different models to choose from.  
+Whether you drop some of these insignificant variables or leave them in would depend on whether you believed that dropping them might be creating omitted variables bias or not.  
+If the science behind including these variables is weak, then I would drop them.
+On the other hand, if the science is pretty strong, then I would leave them in despite their non-significance.  
+Remember, non significance doesn't mean that they don't belong, it just means that you don't have enough data to tell.
+Another consideration is that statistical significance is not scientific significance.
+It could be that there is a large effect, but that the standard error is also large.
+Or it could be that the effect is small, close to zero.
+Stastistically, there is no difference between the two, but scientists might disagree.
+
+It might be helpful to report confidence intervals on the coefficients and on the odds ratios:
+
+```{r}
+cbind(coef(mod4), LOR = confint(mod4)) # Log Odds ratio
+exp(cbind(coef(mod4), OR = confint(mod4))) # Odds ratio
+round(exp(cbind(coef(mod4), OR = confint(mod4)))[-c(1:5),], digits=2) # a little prettier
+```
+
+The interpretation of these numbers is that - for exampple -  each 1 degree Celsius increase in temperature multiples the odds ratio by .15 to .86, i.e. decreases the odds ratio of sole presence 14% ((1-.86)100) to 85% ((1-.15)100).
+A large margin for sure, but we can be certain that the effect is to reduce the probability of presence for sole.
+The other coefficients can be interpreted similarly.
+
+In my final analysis, I would probably report the Odds Ratios for the model with depth and transparency ommitted, just for comparison (because this model has the lowest AIC value).
+
+```{r}
+round(exp(cbind(coef(mod3), OR = confint(mod3)))[-c(1:5),], digits=2) # a little prettier
+```
+In terms of Odds Ratios, it appears that we can drop those variables and hardly change the result.
+
+But note that the effect of depth, while statistically insignificant, could be quite large, scientifically.  A one meter increase in depth could change the odds anywhere from -44% to +235%.
+Only more data or better data would tell for certain.  In contrast, transparency is not only statistically insignificant, but the effect sizes on the Odds ratios are not very different from 1, either.
+
+
+
+Finally, you should look at the battery of diagnostic plots to check for obvious problems.  I see none.  Maybe a nonlinear effect in salinity?
+```{r}
+plot(mod4)
+avPlots(mod4)
+crPlots(mod4)
+```
+
+Finally, it might be nice to produce a plot showing the effect of something like gravel on probability.
+
+```{r}
+pred.data <- solea
+pred.data$salinity=29
+pred.data$temperature=22
+pred.data$pred <- predict(mod4, pred.data, type='response')
+ggplot(data=pred.data) + geom_point(aes(y=Solea_solea, x=gravel, color=month)) + geom_point(aes(y=pred, x=gravel, color=month))
+
