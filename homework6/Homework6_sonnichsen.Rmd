@@ -1,0 +1,143 @@
+---
+title: "Homework7_Sonnichsen"
+author: "Tyler Sonnichsen"
+date: "Monday, April 13, 2015"
+output: html_document
+---
+
+# Homework
+
+Load a few important things, first:
+```{r}
+library(dplyr)
+library(ggplot2)
+library(GGally) # for ggpairs
+library(car)
+```
+
+Your homework assignment is to analyze the prestige data, using "income" as the dependent variable.  That is, develop a regression model that helps to explain the income in an occupation, using any of the other data in the the Prestige data set as a potential predictor.  Describe your methodology from beginning to end.  I have done this using Prestige as the dependent variable, and you should follow along with that before continuing.
+
+First, I would begin by theorizing what the coefficients and relationships should be. Based upon the basic ideas of the data, I would theorize that income is positively correlated with education and prestige. I am unsure of whether women would be a confounding variable or not at this point, though women generally make less than men in the same profession. I would also say that professional and white collar make higher income than that of their blue collar counterparts. 
+
+Next, I would run ggpairs basing income as the dependent variable to help visualize the dependencies within the data. I would also include a clause to filter out the blank or problematic data.
+
+```{r}
+ggpairs(Prestige %>% filter(!is.na(type)) %>% select(income, education, women, type, prestige))
+```
+
+Here, we can see that income shares a nonlinear but still positive correlation with prestige and education. The relationship with 'women' is negative, and it seems that jobs with the 'professional' classification have a strange, wide distribution where blue collar and white collar are fairly standard.
+
+So, I'll run a regresson of income against type, education, women, and prestige. Here we go, with the summary.
+
+Call:
+lm(formula = income ~ type + education + prestige + women, data = Prestige)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-7761.6  -958.6  -302.6   754.2 14206.1 
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  420.524   1957.349   0.215 0.830365    
+typeprof     324.193   1463.093   0.222 0.825131    
+typewc       235.331    984.774   0.239 0.811661    
+education    116.434    275.226   0.423 0.673248    
+prestige     140.605     35.365   3.976 0.000139 ***
+women        -53.505      9.663  -5.537 2.89e-07 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 2619 on 92 degrees of freedom
+  (4 observations deleted due to missingness)
+Multiple R-squared:  0.6362,  Adjusted R-squared:  0.6164 
+F-statistic: 32.17 on 5 and 92 DF,  p-value: < 2.2e-16
+
+
+The range here is gargantuan, and "women" is a confounding factor in this regression. I feel like I'm going to need to play around with that and see. For now, let's take a look at the Component/Residual Plots.
+
+```{r}
+crPlots(reg7)
+```
+
+This seems strange. All four matrices have some severe outliers, for one. The regressions for prestige and women both make some sense (unfortunately), as prestige carries a positive correlation with salary, and women-heavy jobs carry a negative correlation with average salary. The box plot for type may make sense, but the professional outliers skew the range, so it appears that bc, prof, and wc are all relatively even. I don't even know what to make of education versus income. I feel like I would need to hold more factors as fixed when comparing education with income. Let's try to log "women..."
+
+... it didn't work. 
+Error in lm.fit(x, y, offset = offset, singular.ok = singular.ok, ...) : 
+  NA/NaN/Inf in 'x'
+I guess this means that it cannot be ran against another x-factor? I'll try to run a regression with logging education, as that's the other bizarro c-r plot.
+
+Call:
+lm(formula = income ~ type + log(education) + prestige + women, 
+    data = Prestige)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-7751.9  -980.9  -300.4   775.7 13997.3 
+
+Coefficients:
+               Estimate Std. Error t value Pr(>|t|)    
+(Intercept)     945.972   5323.210   0.178    0.859    
+typeprof        691.293   1412.724   0.489    0.626    
+typewc          464.757   1026.257   0.453    0.652    
+log(education)   76.061   2784.359   0.027    0.978    
+prestige        148.601     34.944   4.253 5.07e-05 ***
+women           -53.346      9.666  -5.519 3.12e-07 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 2621 on 92 degrees of freedom
+  (4 observations deleted due to missingness)
+Multiple R-squared:  0.6355,  Adjusted R-squared:  0.6157 
+F-statistic: 32.08 on 5 and 92 DF,  p-value: < 2.2e-16
+
+
+Alright, this seems to be working, at least for education. Let's take a look at the C-R plots for Reg8.
+
+```{r}
+crPlots(Reg8)
+```
+
+That didn't change much. Maybe because I didn't change any other variables that would affect education. It just made the range more manageable. 
+
+I'll try to see if I can base an off-center parabola around women, who seem to be the only confounding factor here. 
+
+Call:
+lm(formula = prestige ~ type + education + women + I(women^2), 
+    data = Prestige)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-20.7031  -4.6235   0.7674   5.0095  19.0593 
+
+Coefficients:
+             Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  1.784952   5.677696   0.314  0.75394    
+typeprof     8.205502   4.137171   1.983  0.05031 .  
+typewc      -2.628795   2.807721  -0.936  0.35158    
+education    4.349757   0.648141   6.711 1.55e-09 ***
+women       -0.273441   0.094526  -2.893  0.00477 ** 
+I(women^2)   0.002498   0.001049   2.380  0.01936 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 7.493 on 92 degrees of freedom
+  (4 observations deleted due to missingness)
+Multiple R-squared:  0.8178,  Adjusted R-squared:  0.8079 
+F-statistic: 82.59 on 5 and 92 DF,  p-value: < 2.2e-16
+
+I'll plot the latest regression to see which the outliers are.
+
+```{r}
+plot(reg10)
+```
+
+All four of the plots indicate medical technicians, electronic workers, and service station attendants are the three outliers. It doesn't make sense that women would be a confounding factor here, as of those three, one would assume that they would be disproportionately men. Also, those are different types. I'll try to see if the residual plots check out.
+
+```{r}
+residualPlots(reg10)
+```
+
+These are all even, which indicates that the data are fairly normalized and reg10 is a functional linear model for income. 
+
+
+
