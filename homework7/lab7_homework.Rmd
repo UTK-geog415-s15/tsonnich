@@ -52,3 +52,57 @@ nephews/nieces, aunts/uncles, and in-laws.  Some children travelled
 only with a nanny, therefore parch=0 for them.  As well, some
 travelled with very close friends or neighbors in a village, however,
 the definitions do not support such relations.
+
+TYLER'S HOMEWORK COMPONENT
+
+This is quite a fascinating historical dataset. Before even considering the factors presented, I would think this could be a way to question that "women and children first" slogan that's been passed down throughout history. Should it be amended to "(rich) women and children first?" I think the big contradiction here would be gender and age versus social class. That being said, the social class stat may complicate the analysis, because it seems likely that rich people would spend more money on tickets. Every individual's fare is listed here. 
+
+I'll begin with a "kitchen sink" regression and see what we have to work with. On second thought, that attempt gave R a fatal error. This may be because it has both binomial and trinomial factors (class is denoted here, which seems fairly redundant because of ticket prices). Let me run a regression using as many variable factors I can, including two binomials (survival, and gender) and see if that works.
+
+```{r}
+titanic %>% select(Survived, Sex, Age, SibSp, Parch, Fare) %>% ggpairs()
+```
+
+There are 11 warnings listed, but it didn't make the program crash. The "Survived" column doesn't really give a clear picture of what factors determined it, other than showing us which ones have outliers. The Sex/Sex box does point out how many more passengers were male than female, though, which makes me think that perhaps "women and children first" was true in a respect, since many more women survived than men. 
+
+I will try doing a generalized linear model for Survival. I will take out their class, because we have their fare, and I will remove their Names and Tickets (neither are really quantities), and I will also remove their Cabin, because too few are recorded to be a viable statistic in this study. 
+
+```{r}
+mod <- glm(Survived ~ . - Pclass - Name - Ticket - Cabin, data=titanic,
++            family=binomial(link='logit'))
+> summary(mod)
+```
+
+Come to think of it, I should have modified the .csv table to remove the non-quantifiable factors before doing any of this, but I'll deal with that moving forward when necessary. I already have a model "mod" that cleans the mess up some.
+I'll now take a look at Components vs. Residual plots.
+
+```{r}
+library(car)
+crPlots(mod)
+```
+
+Of course PassengerId is horizontal, as the numbers are randomly assigned and have no bearing on any factors for survival. The fare cluster here and the outliers present on the 'Embarked' station are confusing. It doesn't seem that Siblings or Parents/Children has any significant bearing or complication, so I'll try to remove those and then run an ANOVA.
+
+```{r}
+mod2 <- glm(Survived ~ . - SibSp - PassengerId - Parch - Name - Ticket - Cabin, data=titanic)
+summary(mod2)
+anova(mod2, mod, test="Chisq")
+# Compare the coefficients
+coef(mod2)
+coef(mod)
+```
+
+Sex is still a particularly standing-out factor when run through a data summary in this GLM. Also, the AIC dropped more than thirty points. I do not know whether this is highly significant or not, but it does mean that there was some detected discrepancy. The AOV test detected a major discrepancy between the two, so I think dropping SibSp and Parch was okay.
+
+Based on these findings so far, it seemed that a certain class of Passenger got on at each stop, and were shuffled into a particular section of the boat that was more difficult to access the deck/lifeboats from. Most of the people who boarded at Cherbourg had a much higher survival rate than those at the other two.
+
+As far as age goes, we have to run another test to see if it was at all a mitigating factor in the Survival rate. I'll run another GLM and ANOVA to see if Age makes a huge difference.
+
+```{r}
+mod3 <- glm(Survived ~ . - SibSp - PassengerId - Parch - Name - Ticket - Cabin - Age, data=titanic)
+> summary(mod3)
+```
+
+The AIC really did not drop from the mod2, so at this juncture, we could not draw any conclusions that age affected the passengers' probability for survival. The young and old supposedly died at the same levels, and there are no obvious confounding factors. Passengers from all classes were packed onto the Titanic.
+
+
